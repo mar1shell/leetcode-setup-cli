@@ -22,10 +22,11 @@ def get_all_problems_map():
         raise Exception("Failed to fetch problem list.")
         
     data = response.json()
+
     problem_list = data['stat_status_pairs']
     
     id_to_slug_map = {
-        str(problem['stat']['question_id']): problem['stat']['question__title_slug']
+        str(problem['stat']['frontend_question_id']): problem['stat']['question__title_slug']
         for problem in problem_list
     }
     
@@ -78,7 +79,7 @@ def format_problem_to_markdown(problem_data):
     markdown_content = h.handle(html_content)
     
     # Clean up extra newlines that html2text often adds inside <pre> blocks
-    markdown_content = markdown_content.replace('\n    \n', '\n').replace('\n\n\n', '\n').replace('\n\n', '\n')
+    markdown_content = markdown_content.replace('\n    \n', '\n')
 
     # Assemble the final Markdown string
     markdown_output = (
@@ -144,27 +145,22 @@ if __name__ == "__main__":
     try:
         print("Fetching problem list to create ID-to-Slug map...")
         problem_map = get_all_problems_map()
+
         print("Map created successfully.")
 
         if question_id_input in problem_map:
             target_slug = problem_map[question_id_input]
-            print(f"Found slug '{target_slug}' for question ID {question_id_input}. Fetching details...")
 
-            dirNames = target_slug.split('-')
-            dirName = question_id_input + '-' +'-'.join([word.capitalize() for word in dirNames])
-
-            if makeProblemDirectory(dirName):
-                os.chdir(dirName)
-                print(f"Changed working directory to: {os.getcwd()}")
-            else:
-                print(f"Problem directory already exists.")
-                sys.exit(1)
+            dirName = question_id_input + '-'.join([word.capitalize() for word in target_slug.split('-')])
 
             problem_data = get_problem_data(target_slug)
 
             print("Problem details fetched successfully. Formatting to Markdown...")
             
             markdown_output = format_problem_to_markdown(problem_data)
+
+            makeProblemDirectory(dirName)
+            os.chdir(dirName)
             
             filename = "README.md"
             
