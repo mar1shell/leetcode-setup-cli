@@ -151,7 +151,7 @@ if __name__ == "__main__":
         if question_id_input in problem_map:
             target_slug = problem_map[question_id_input]
 
-            dirName = question_id_input + '-'.join([word.capitalize() for word in target_slug.split('-')])
+            dirName = question_id_input + '-' + '-'.join([word.capitalize() for word in target_slug.split('-')])
 
             problem_data = get_problem_data(target_slug)
 
