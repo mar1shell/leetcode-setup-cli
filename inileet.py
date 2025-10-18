@@ -1,5 +1,4 @@
 import requests
-import json
 import sys
 import html2text
 import os
@@ -103,10 +102,8 @@ def makeProblemDirectory(dirname):
 
         return False
     
-def makeSolutionFile(filename):
+def makeSolutionFile(filename, language):
     """Creates a solution file if it doesn't already exist."""
-    
-    language = sys.argv[2] if len(sys.argv) > 2 else "java"
         
     languagesCodeExtensions = {
         "python": "py",
@@ -159,17 +156,45 @@ if __name__ == "__main__":
             
             markdown_output = format_problem_to_markdown(problem_data)
 
-            makeProblemDirectory(dirName)
-            os.chdir(dirName)
-            
-            filename = "README.md"
+            print('Formatting complete.')
+            print(f'Do you want to save the formatted problem to directory {dirName}? (y/n): ', end='')
+
+            user_input = input().strip().lower()
+            if user_input == 'y':
+                makeProblemDirectory(dirName)
+                os.chdir(dirName)
+
+                filename = "README.md"
+            else:
+                filename = f"{question_id_input}-{target_slug}.md"
+                print(f"Saving to current directory as '{filename}'")
             
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(markdown_output)
             
             print(f"\n✅ Successfully saved formatted problem to '{filename}'")
 
-            makeSolutionFile(dirName)
+            print('Do you want to create a solution file? (y/n): ', end='')
+            user_input = input().strip().lower()
+            if user_input == 'y':
+                print('Do you want to create the solution file in Java? (default is Java) (y/n): ', end='')
+                lang_input = input().strip().lower()
+                
+                if lang_input != 'y':
+                    print('Enter the programming language (e.g., python, cpp, javascript): ', end='')
+                    language = input().strip().lower()
+                else:
+                    language = "java"
+
+                makeSolutionFile(dirName, language)
+                print("You can now implement your solution in the created file.✅")
+            else:
+                print("Skipping solution file creation.")
+
+            print('####################################################')
+            print("Process completed successfully. Happy coding!")
+            print('made by mar1shell, check marouane.net for more!')
+            print('####################################################')
         else:
             print(f"Error: Question ID '{question_id_input}' not found.")
     except Exception as e:
