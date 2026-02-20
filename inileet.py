@@ -2,6 +2,7 @@ import requests
 import sys
 import html2text
 import os
+import argparse
 
 def get_all_problems_map():
     """
@@ -122,80 +123,99 @@ def makeSolutionFile(filename, language):
 
     if not os.path.exists(code_filename):
         try:
-            code_file =  open(code_filename, 'w', encoding='utf-8')
+            with open(code_filename, 'w', encoding='utf-8') as code_file:
+                pass
+            print(f"✅ Created code file '{code_filename}' for solution.")
         except Exception as e:
             print(f"Error creating code file '{code_filename}': {e}")
-        finally:
-            code_file.close()
-
-        print(f"✅ Created code file '{code_filename}' for solution.")
     else:
         print(f"Code file '{code_filename}' already exists. Skipping creation.")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python your_script_name.py <question_number>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        prog='inileet',
+        description='LeetCode problem setup CLI - fetches a problem and scaffolds a workspace for it.'
+    )
+    parser.add_argument('question_id', help='LeetCode question number (e.g. 1, 42, 200)')
+    parser.add_argument(
+        '-d', '--default',
+        action='store_true',
+        help='Skip all prompts: automatically create the problem directory, README.md, and a Java solution file.'
+    )
+    parser.add_argument(
+        '-l', '--lang',
+        default='java',
+        metavar='LANGUAGE',
+        help='Programming language for the solution file (default: java). '
+             'Supported: python, java, cpp, c, javascript, ruby, go, csharp, swift, kotlin'
+    )
 
-    question_id_input = sys.argv[1]
+    args = parser.parse_args()
+    question_id_input = args.question_id
+    use_default = args.default
+    language = args.lang.strip().lower()
 
     try:
         print("Fetching problem list to create ID-to-Slug map...")
         problem_map = get_all_problems_map()
-
         print("Map created successfully.")
 
-        if question_id_input in problem_map:
-            target_slug = problem_map[question_id_input]
+        if question_id_input not in problem_map:
+            print(f"Error: Question ID '{question_id_input}' not found.")
+            sys.exit(1)
 
-            dirName = question_id_input + '-' + '-'.join([word.capitalize() for word in target_slug.split('-')])
+        target_slug = problem_map[question_id_input]
+        dirName = question_id_input + '-' + '-'.join([word.capitalize() for word in target_slug.split('-')])
 
-            problem_data = get_problem_data(target_slug)
+        problem_data = get_problem_data(target_slug)
+        print("Problem details fetched successfully. Formatting to Markdown...")
 
-            print("Problem details fetched successfully. Formatting to Markdown...")
-            
-            markdown_output = format_problem_to_markdown(problem_data)
+        markdown_output = format_problem_to_markdown(problem_data)
+        print('Formatting complete.')
 
-            print('Formatting complete.')
+        # --- Determine whether to create the problem directory ---
+        if use_default:
+            save_to_dir = True
+        else:
             print(f'Do you want to save the formatted problem to directory {dirName}? (y/n): ', end='')
+            save_to_dir = input().strip().lower() == 'y'
 
-            user_input = input().strip().lower()
-            if user_input == 'y':
-                makeProblemDirectory(dirName)
-                os.chdir(dirName)
+        if save_to_dir:
+            makeProblemDirectory(dirName)
+            os.chdir(dirName)
+            filename = "README.md"
+        else:
+            filename = f"{question_id_input}-{target_slug}.md"
+            print(f"Saving to current directory as '{filename}'")
 
-                filename = "README.md"
-            else:
-                filename = f"{question_id_input}-{target_slug}.md"
-                print(f"Saving to current directory as '{filename}'")
-            
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(markdown_output)
-            
-            print(f"\n✅ Successfully saved formatted problem to '{filename}'")
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(markdown_output)
+        print(f"\n✅ Successfully saved formatted problem to '{filename}'")
 
+        # --- Determine whether to create a solution file ---
+        if use_default:
+            create_solution = True
+        else:
             print('Do you want to create a solution file? (y/n): ', end='')
-            user_input = input().strip().lower()
-            if user_input == 'y':
-                print('Do you want to create the solution file in Java? (default is Java) (y/n): ', end='')
-                lang_input = input().strip().lower()
-                
-                if lang_input != 'y':
+            create_solution = input().strip().lower() == 'y'
+
+            if create_solution and language == 'java':
+                print('Programming language not specified via --lang. Use Java? (default) (y/n): ', end='')
+                if input().strip().lower() != 'y':
                     print('Enter the programming language (e.g., python, cpp, javascript): ', end='')
                     language = input().strip().lower()
-                else:
-                    language = "java"
 
-                makeSolutionFile(dirName, language)
-                print("You can now implement your solution in the created file.✅")
-            else:
-                print("Skipping solution file creation.")
-
-            print('####################################################')
-            print("Process completed successfully. Happy coding!")
-            print('made by mar1shell, check marouane.net for more!')
-            print('####################################################')
+        if create_solution:
+            makeSolutionFile(dirName, language)
+            print("You can now implement your solution in the created file. ✅")
         else:
-            print(f"Error: Question ID '{question_id_input}' not found.")
+            print("Skipping solution file creation.")
+
+        print('####################################################')
+        print("Process completed successfully. Happy coding!")
+        print('made by mar1shell, check marouane.net for more!')
+        print('####################################################')
+
     except Exception as e:
         print(f"An error occurred: {e}")
+        sys.exit(1)
